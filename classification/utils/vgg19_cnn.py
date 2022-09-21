@@ -183,5 +183,5 @@ class VGG19_CNN(object):
       setattr(self, parameter, value)
     return self
 
-  def save(self):
-    self.model.save('../fire-smoke-detect-weakly/models/fire_model_AL.h5')
+  def save(self, warmstart_size):
+    self.model.save('../fire-smoke-detect-weakly/models/fire_model_AL_' + warmstart_size + '.h5')

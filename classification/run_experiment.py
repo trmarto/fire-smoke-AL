@@ -53,7 +53,7 @@ flags.DEFINE_string("sampling_method", "margin",
                     ("Name of sampling method to use, can be any defined in "
                      "AL_MAPPING in sampling_methods.constants"))
 flags.DEFINE_float(
-    "warmstart_size", 1,
+    "warmstart_size", 0.1,
     ("Can be float or integer.  Float indicates percentage of training data "
      "to use in the initial warmstart model")
 )
@@ -78,9 +78,9 @@ flags.DEFINE_string(
 flags.DEFINE_string("normalize_data", "False", "Whether to normalize the data.")
 flags.DEFINE_string("standardize_data", "False",
                     "Whether to standardize the data.")
-flags.DEFINE_string("save_dir", "/tmp/toy_experiments",
+flags.DEFINE_string("save_dir", "../../files/results",
                     "Where to save outputs")
-flags.DEFINE_string("data_dir", "../data/",
+flags.DEFINE_string("data_dir", "../../files/models/",
                     "Directory with predownloaded and saved datasets.")
 flags.DEFINE_string("max_dataset_size", "15000",
                     ("maximum number of datapoints to include in data "
@@ -261,8 +261,7 @@ def generate_one_curve(X_train,
     print('Requested: %d, Selected: %d' % (n_sample, len(new_batch)))
     assert len(new_batch) == n_sample
     assert len(list(set(selected_inds))) == len(selected_inds)
-    score_model.save()
-
+    
   # Check that the returned indice are correct and will allow mapping to
   # training set from original data
   #assert all(y_noise[indices[selected_inds]] == y_train[selected_inds])
@@ -271,7 +270,7 @@ def generate_one_curve(X_train,
   results["data_sizes"] = data_sizes
   results["indices"] = None #indices
   results["noisy_targets"] = None #y_noise
-  score_model.save()
+  score_model.save(FLAGS.warmstart_size)
   return results, sampler
 
 
@@ -299,7 +298,7 @@ def main(argv):
                'directory most likely already created.'))
     # Set up logging
     filename = os.path.join(
-        save_dir, "log-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt")
+        save_dir, FLAGS.dataset +  "_warmstart-" + FLAGS.warmstart_size + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt")
     sys.stdout = utils.Logger(filename)
 
   confusions = [float(t) for t in FLAGS.confusions.split(" ")]
@@ -311,6 +310,12 @@ def main(argv):
   standardize_data = FLAGS.standardize_data == "True"
   x_train, y_train, x_test, y_test, x_val, y_val = utils.get_mldata(FLAGS.data_dir, FLAGS.dataset)
   starting_seed = FLAGS.seed
+
+  # Alteração Score Method
+  if FLAGS.dataset == 'fire':
+    FLAGS.score_method = 'vgg19_cnn'
+  elif FLAGS.dataset == 'smoke':
+    FLAGS.score_method = 'vgg16_cnn'
 
   for c in confusions:
     for m in mixtures:
