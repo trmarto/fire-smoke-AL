@@ -16,25 +16,27 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from audioop import avg
 
 import copy
 
 import keras
 import keras.backend as K
-from keras.applications.vgg19 import VGG19
+from keras.layers import Activation
+from keras.layers import Conv2D
+from keras.layers import Dense
+from keras.layers import Dropout
+from keras.layers import Flatten
+from keras.layers import MaxPooling2D
+from keras.models import Sequential
+from keras.applications.vgg16 import VGG16
 
 
 
 import numpy as np
 import tensorflow as tf
 
-import matplotlib.pyplot as plt
 
-
-
-
-class VGG19_CNN(object):
+class VGG16_CNN(object):
   """Small convnet that matches sklearn api.
 
   Implements model from
@@ -46,10 +48,10 @@ class VGG19_CNN(object):
 
   def __init__(self,
                random_state=1,
-               epochs=35,
+               epochs=25,
                batch_size=32,
                solver='adam',
-               learning_rate=0.00001,
+               learning_rate=0.000001,
                lr_decay=0.):
     # params
     self.solver = solver
@@ -70,11 +72,9 @@ class VGG19_CNN(object):
     np.random.seed(self.random_state)
     tf.set_random_seed(self.random_state)
     
-    conv_model = VGG19(include_top=False, input_shape=(256,256,3), pooling = 'avg')
+    conv_model = VGG16(weights='imagenet', include_top=False, input_shape=(256,256,3), pooling='avg')
     #for layer in conv_model.layers: 
     #    layer.trainable = False
-    #x = keras.layers.Activation(activation = 'relu')()
-    #x = keras.layers.GlobalAveragePooling2D()(x)
     predictions = keras.layers.Dense(2, activation='sigmoid')(conv_model.output)
     model = keras.models.Model(inputs=conv_model.input, outputs=predictions)
     model.summary()
@@ -91,7 +91,7 @@ class VGG19_CNN(object):
 
     model.compile(loss='binary_crossentropy',
                   optimizer=opt,
-                  metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
+                  metrics=['accuracy'])
     # Save initial weights so that model can be retrained with same
     # initialization
     self.initial_weights = copy.deepcopy(model.get_weights())
@@ -122,9 +122,8 @@ class VGG19_CNN(object):
     transformed_y = np.array(map(mapper, y))
     return transformed_y
 
-  def fit(self, X_train, y_train, X_val, y_val, sample_weight=None):
+  def fit(self, X_train, y_train, sample_weight=None):
     y_mat = self.create_y_mat(y_train)
-    y_val_mat = self.create_y_mat(y_val)
 
     if self.model is None:
       self.build_model(X_train)
@@ -132,14 +131,9 @@ class VGG19_CNN(object):
     # We don't want incremental fit so reset learning rate and weights
     K.set_value(self.model.optimizer.lr, self.learning_rate)
     self.model.set_weights(self.initial_weights)
-
-    #ES = [keras.callbacks.EarlyStopping(monitor='val_loss',patience=10,verbose=1,mode='auto')]
-
-
-    self.history = self.model.fit(
+    self.model.fit(
         X_train,
         y_mat,
-        validation_data=(X_val, y_val_mat),
         batch_size=self.batch_size,
         epochs=self.epochs,
         shuffle=True,
@@ -152,8 +146,8 @@ class VGG19_CNN(object):
 
   def score(self, X_val, val_y):
     y_mat = self.create_y_mat(val_y)
-    loss, acc, precision, recall = self.model.evaluate(X_val, y_mat, verbose=0)
-    return loss, acc, precision, recall
+    val_acc = self.model.evaluate(X_val, y_mat)[1]
+    return val_acc
 
   def decision_function(self, X):
     return self.predict(X)
@@ -193,27 +187,5 @@ class VGG19_CNN(object):
       setattr(self, parameter, value)
     return self
 
-  def save(self, warmstart_size, mode):
-    if mode == True:
-      #print(self.history.history.keys())
-
-      plt.plot(self.history.history['accuracy'])
-      plt.plot(self.history.history['val_accuracy'])
-      plt.title('Models accuracy evolution')
-      plt.ylabel('Accuracy')
-      plt.xlabel('Percentage of labeled training data')
-      plt.legend(['Train', 'Val'], loc='upper left')
-      plt.show()
-      plt.savefig("../../files/results/fire_margin/images/ACC_INIT_fire_" + warmstart_size + ".png")
-      plt.close()
-      # summarize history for loss
-      plt.plot(self.history.history['loss'])
-      plt.plot(self.history.history['val_loss'])
-      plt.title('Models loss evolution')
-      plt.ylabel('Loss')
-      plt.xlabel('Percentage of labeled training data')
-      plt.legend(['Train', 'Val'], loc='upper left')
-      plt.show()
-      plt.savefig("../../files/results/fire_margin/images/LOSS_INIT_fire_" + warmstart_size + ".png")
-      plt.close()   
-    self.model.save('../../files/models/fire_model_AL_' + warmstart_size + '.h5')
+  def save(self, warmstart_size):
+    self.model.save('../fire-smoke-detect-weakly/models/smoke_model_AL_' + warmstart_size + '.h5')

@@ -48,12 +48,16 @@ from sampling_methods.constants import get_AL_sampler
 from sampling_methods.constants import get_wrapper_AL_mapping
 from utils import utils
 
+import matplotlib.pyplot as plt
+import json
+
+
 flags.DEFINE_string("dataset", "letter", "Dataset name")
 flags.DEFINE_string("sampling_method", "margin",
                     ("Name of sampling method to use, can be any defined in "
                      "AL_MAPPING in sampling_methods.constants"))
 flags.DEFINE_float(
-    "warmstart_size", 0.1,
+    "warmstart_size", 141,
     ("Can be float or integer.  Float indicates percentage of training data "
      "to use in the initial warmstart model")
 )
@@ -80,7 +84,7 @@ flags.DEFINE_string("standardize_data", "False",
                     "Whether to standardize the data.")
 flags.DEFINE_string("save_dir", "../../files/results",
                     "Where to save outputs")
-flags.DEFINE_string("data_dir", "../../files/models/",
+flags.DEFINE_string("data_dir", "../../files/data/",
                     "Directory with predownloaded and saved datasets.")
 flags.DEFINE_string("max_dataset_size", "15000",
                     ("maximum number of datapoints to include in data "
@@ -217,8 +221,18 @@ def generate_one_curve(X_train,
   sampler = sampler(X_train, y_train, seed)
 
   results = {}
+  results_save = {} 
   data_sizes = []
-  accuracy = []
+  acc_train = []
+  acc_test = []
+  loss_train = []
+  loss_test = []
+  prec_train = []
+  prec_test = []
+  rec_train = []
+  rec_test = []
+
+  initial_training = True
   selected_inds = list(range(seed_batch))
 
   # If select model is None, use score_model
@@ -239,18 +253,29 @@ def generate_one_curve(X_train,
     # Sort active_ind so that the end results matches that of uniform sampling
     partial_X = X_train[sorted(selected_inds)]
     partial_y = y_train[sorted(selected_inds)]
-    score_model.fit(partial_X, partial_y)
+    score_model.fit(partial_X, partial_y, X_val, y_val)
     if not same_score_select:
-      select_model.fit(partial_X, partial_y)
-    acc = score_model.score(X_test, y_test)
-    accuracy.append(acc)
-    print("Sampler: %s, Accuracy: %.2f%%" % (sampler.name, accuracy[-1]*100))
+      select_model.fit(partial_X, partial_y, X_val, y_val)
+    loss1, acc1, prec1, rec1 = score_model.score(X_train, y_train)
+    loss, acc, prec, rec = score_model.score(X_val, y_val)
+    loss2, acc2, prec2, rec2 = score_model.score(X_test, y_test)
 
+    acc_train.append(acc1)
+    acc_test.append(acc2)
+    loss_train.append(loss1)
+    loss_test.append(loss2)
+    prec_train.append(prec1)
+    prec_test.append(prec2)
+    rec_train.append(rec1)
+    rec_test.append(rec2)
+
+
+    print("Sampler: %s\n\nTrain Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%% \n  Val Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%%  \n\n Test Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%% \n" % (sampler.name, acc1*100, loss1,  prec1*100, rec1*100, acc*100, loss,  prec*100, rec*100 ,acc2*100, loss2,  prec2*100, rec2*100))
     n_sample = min(batch_size, train_size - len(selected_inds))
     select_batch_inputs = {
         "model": select_model,
         "labeled": dict(zip(selected_inds, y_train[selected_inds])),
-        "eval_acc": accuracy[-1],
+        "eval_acc": acc_test[-1],
         "X_test": X_val,
         "y_test": y_val,
         "y": y_train
@@ -261,16 +286,54 @@ def generate_one_curve(X_train,
     print('Requested: %d, Selected: %d' % (n_sample, len(new_batch)))
     assert len(new_batch) == n_sample
     assert len(list(set(selected_inds))) == len(selected_inds)
-    
+    if initial_training == True:
+      score_model.save(str(FLAGS.warmstart_size) + "_INITIAL",True)
+      initial_training = False
+
   # Check that the returned indice are correct and will allow mapping to
   # training set from original data
   #assert all(y_noise[indices[selected_inds]] == y_train[selected_inds])
-  results["accuracy"] = accuracy
+  
+  plt.plot(np.array(data_sizes)/train_size * 100, np.array(acc_train)*100, label='Train')
+  plt.plot(np.array(data_sizes)/train_size * 100, np.array(acc_test)*100, label='Test')
+  plt.title('Models accuracy evolution')
+  plt.ylabel('Accuracy')
+  plt.xlabel('Percentage of labeled training data')
+  plt.legend(['Train', 'Test'], loc='upper left')
+  plt.show()
+  plt.savefig("../../files/results/fire_margin/images/ACC_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".png")
+  plt.close()
+  # summarize history for loss
+  plt.plot(np.array(data_sizes)/train_size * 100, loss_train, label='Train')
+  plt.plot(np.array(data_sizes)/train_size * 100, loss_test, label='Test')
+  plt.title('Models loss evolution')
+  plt.ylabel('Loss')
+  plt.xlabel('Percentage of labeled training data')
+  plt.legend(['Train', 'Test'], loc='upper left')
+  plt.show()
+  plt.savefig("../../files/results/fire_margin/images/LOSS_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".png")
+  plt.close()
+  
+  results_save["data_sizes"] = data_sizes
+  results_save["acc_train"] = acc_train
+  results_save["acc_test"] = acc_test
+  results_save["loss_train"] = loss_train
+  results_save["loss_test"] = loss_test
+  results_save["prec_train"] = prec_train
+  results_save["prec_test"] = prec_test
+  results_save["rec_train"] = rec_train
+  results_save["rec_test"] = rec_test
+
+  with open("../../files/results/fire_margin/data/DATA_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt", 'w') as file:
+     file.write(json.dumps(results_save))
+
+
+  results["accuracy"] = acc_test
   results["selected_inds"] = selected_inds
   results["data_sizes"] = data_sizes
   results["indices"] = None #indices
   results["noisy_targets"] = None #y_noise
-  score_model.save(FLAGS.warmstart_size)
+  score_model.save(str(FLAGS.warmstart_size), False)
   return results, sampler
 
 
@@ -298,7 +361,7 @@ def main(argv):
                'directory most likely already created.'))
     # Set up logging
     filename = os.path.join(
-        save_dir, FLAGS.dataset +  "_warmstart-" + FLAGS.warmstart_size + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt")
+        save_dir, FLAGS.dataset +  "_warmstart-" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt")
     sys.stdout = utils.Logger(filename)
 
   confusions = [float(t) for t in FLAGS.confusions.split(" ")]
