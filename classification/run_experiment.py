@@ -57,7 +57,7 @@ flags.DEFINE_string("sampling_method", "margin",
                     ("Name of sampling method to use, can be any defined in "
                      "AL_MAPPING in sampling_methods.constants"))
 flags.DEFINE_float(
-    "warmstart_size", 141,
+    "warmstart_size", 1126,
     ("Can be float or integer.  Float indicates percentage of training data "
      "to use in the initial warmstart model")
 )
@@ -225,12 +225,16 @@ def generate_one_curve(X_train,
   data_sizes = []
   acc_train = []
   acc_test = []
+  acc_val = []
   loss_train = []
   loss_test = []
+  loss_val = []
   prec_train = []
   prec_test = []
+  prec_val = []
   rec_train = []
   rec_test = []
+  rec_val = []
 
   initial_training = True
   selected_inds = list(range(seed_batch))
@@ -257,20 +261,24 @@ def generate_one_curve(X_train,
     if not same_score_select:
       select_model.fit(partial_X, partial_y, X_val, y_val)
     loss1, acc1, prec1, rec1 = score_model.score(X_train, y_train)
-    loss, acc, prec, rec = score_model.score(X_val, y_val)
+    loss3, acc3, prec3, rec3 = score_model.score(X_val, y_val)
     loss2, acc2, prec2, rec2 = score_model.score(X_test, y_test)
 
     acc_train.append(acc1)
     acc_test.append(acc2)
+    acc_val.append(acc3)
     loss_train.append(loss1)
     loss_test.append(loss2)
+    loss_val.append(loss3)
     prec_train.append(prec1)
     prec_test.append(prec2)
+    prec_val.append(prec3)
     rec_train.append(rec1)
     rec_test.append(rec2)
+    rec_val.append(rec3)
 
 
-    print("Sampler: %s\n\nTrain Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%% \n  Val Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%%  \n\n Test Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%% \n" % (sampler.name, acc1*100, loss1,  prec1*100, rec1*100, acc*100, loss,  prec*100, rec*100 ,acc2*100, loss2,  prec2*100, rec2*100))
+    print("Sampler: %s\n\nTrain Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%% \n  Val Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%%  \n\n Test Accuracy: %.2f%% Loss: %f Precision: %.2f%% Recall: %.2f%% \n" % (sampler.name, acc1*100, loss1,  prec1*100, rec1*100, acc3*100, loss3,  prec3*100, rec3*100 ,acc2*100, loss2,  prec2*100, rec2*100))
     n_sample = min(batch_size, train_size - len(selected_inds))
     select_batch_inputs = {
         "model": select_model,
@@ -300,6 +308,8 @@ def generate_one_curve(X_train,
   plt.ylabel('Accuracy')
   plt.xlabel('Percentage of labeled training data')
   plt.legend(['Train', 'Test'], loc='upper left')
+  plt.grid(linestyle = '--', linewidth = 0.5)
+
   plt.show()
   plt.savefig("../../files/results/fire_margin/images/ACC_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".png")
   plt.close()
@@ -310,6 +320,8 @@ def generate_one_curve(X_train,
   plt.ylabel('Loss')
   plt.xlabel('Percentage of labeled training data')
   plt.legend(['Train', 'Test'], loc='upper left')
+  plt.grid(linestyle = '--', linewidth = 0.5)
+
   plt.show()
   plt.savefig("../../files/results/fire_margin/images/LOSS_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".png")
   plt.close()
@@ -317,12 +329,17 @@ def generate_one_curve(X_train,
   results_save["data_sizes"] = data_sizes
   results_save["acc_train"] = acc_train
   results_save["acc_test"] = acc_test
+  results_save["acc_val"] = acc_val
   results_save["loss_train"] = loss_train
   results_save["loss_test"] = loss_test
+  results_save["loss_val"] = loss_val
   results_save["prec_train"] = prec_train
   results_save["prec_test"] = prec_test
+  results_save["prec_val"] = prec_val
   results_save["rec_train"] = rec_train
   results_save["rec_test"] = rec_test
+  results_save["rec_val"] = rec_val
+
 
   with open("../../files/results/fire_margin/data/DATA_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt", 'w') as file:
      file.write(json.dumps(results_save))

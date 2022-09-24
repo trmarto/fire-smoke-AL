@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
+from tabnanny import verbose
 
 import keras
 import keras.backend as K
@@ -35,6 +36,8 @@ from keras.applications.vgg16 import VGG16
 import numpy as np
 import tensorflow as tf
 
+import matplotlib.pyplot as plt
+
 
 class VGG16_CNN(object):
   """Small convnet that matches sklearn api.
@@ -48,7 +51,7 @@ class VGG16_CNN(object):
 
   def __init__(self,
                random_state=1,
-               epochs=25,
+               epochs=35,
                batch_size=32,
                solver='adam',
                learning_rate=0.000001,
@@ -72,7 +75,7 @@ class VGG16_CNN(object):
     np.random.seed(self.random_state)
     tf.set_random_seed(self.random_state)
     
-    conv_model = VGG16(weights='imagenet', include_top=False, input_shape=(256,256,3), pooling='avg')
+    conv_model = VGG16(include_top=False, input_shape=(256,256,3), pooling='avg')
     #for layer in conv_model.layers: 
     #    layer.trainable = False
     predictions = keras.layers.Dense(2, activation='sigmoid')(conv_model.output)
@@ -91,7 +94,7 @@ class VGG16_CNN(object):
 
     model.compile(loss='binary_crossentropy',
                   optimizer=opt,
-                  metrics=['accuracy'])
+                  metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
     # Save initial weights so that model can be retrained with same
     # initialization
     self.initial_weights = copy.deepcopy(model.get_weights())
@@ -122,8 +125,9 @@ class VGG16_CNN(object):
     transformed_y = np.array(map(mapper, y))
     return transformed_y
 
-  def fit(self, X_train, y_train, sample_weight=None):
+  def fit(self, X_train, y_train, X_val, y_val, sample_weight=None):
     y_mat = self.create_y_mat(y_train)
+    y_val_mat = self.create_y_mat(y_val)
 
     if self.model is None:
       self.build_model(X_train)
@@ -131,9 +135,10 @@ class VGG16_CNN(object):
     # We don't want incremental fit so reset learning rate and weights
     K.set_value(self.model.optimizer.lr, self.learning_rate)
     self.model.set_weights(self.initial_weights)
-    self.model.fit(
+    self.history = self.model.fit(
         X_train,
         y_mat,
+        validation_data=(X_val, y_val_mat),
         batch_size=self.batch_size,
         epochs=self.epochs,
         shuffle=True,
@@ -146,8 +151,8 @@ class VGG16_CNN(object):
 
   def score(self, X_val, val_y):
     y_mat = self.create_y_mat(val_y)
-    val_acc = self.model.evaluate(X_val, y_mat)[1]
-    return val_acc
+    loss, acc, precision, recall = self.model.evaluate(X_val, y_mat, verbose=0)
+    return loss, acc, precision, recall
 
   def decision_function(self, X):
     return self.predict(X)
@@ -187,5 +192,31 @@ class VGG16_CNN(object):
       setattr(self, parameter, value)
     return self
 
-  def save(self, warmstart_size):
-    self.model.save('../fire-smoke-detect-weakly/models/smoke_model_AL_' + warmstart_size + '.h5')
+  def save(self, warmstart_size, mode):
+
+    if mode == True:
+      #print(self.history.history.keys())
+
+      plt.plot(self.history.history['accuracy'])
+      plt.plot(self.history.history['val_accuracy'])
+      plt.title('Models accuracy evolution')
+      plt.ylabel('Accuracy')
+      plt.xlabel('Epoch')
+      plt.legend(['Train', 'Val'], loc='upper left')
+      plt.grid(linestyle = '--', linewidth = 0.5)
+
+      plt.show()
+      plt.savefig("../../files/results/fire_margin/images/ACC_INIT_smoke_" + warmstart_size + ".png")
+      plt.close()
+      # summarize history for loss
+      plt.plot(self.history.history['loss'])
+      plt.plot(self.history.history['val_loss'])
+      plt.title('Models loss evolution')
+      plt.ylabel('Loss')
+      plt.xlabel('Epoch')
+      plt.legend(['Train', 'Val'], loc='upper left')
+      plt.grid(linestyle = '--', linewidth = 0.5)
+      plt.show()
+      plt.savefig("../../files/results/fire_margin/images/LOSS_INIT_smoke_" + warmstart_size + ".png")
+      plt.close()
+    self.model.save('../../files/models/smoke_model_AL_' + warmstart_size + '.h5')

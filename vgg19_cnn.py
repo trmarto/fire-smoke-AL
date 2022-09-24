@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import keras
 
+import matplotlib.pyplot as plt
+
+
 dataname = 'fire'
 col_names=['Image','Fire','Smoke']
 data_dir = '../files/data/'
@@ -103,7 +106,7 @@ Y_val = keras.utils.to_categorical(Y_val, 2)
 
 
 
-model = tf.keras.applications.VGG19(include_top=False, input_shape=(256,256,3), pooling = 'avg')
+model = keras.applications.VGG19(include_top=False, input_shape=(256,256,3), pooling = 'avg')
 
 predictions = keras.layers.Dense(2, activation='sigmoid')(model.output)
 model = keras.models.Model(inputs=model.input, outputs=predictions)
@@ -111,10 +114,10 @@ model.summary()  #Line 2
 
 
 model.compile(loss='binary_crossentropy',
-                  optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+                  optimizer=keras.optimizers.Adam(learning_rate=0.00001),
                   metrics=['accuracy'])
 
-model.fit(x = X_train, y = Y_train, epochs=35, batch_size=64,validation_data=(X_val, Y_val))
+history = model.fit(x = X_train, y = Y_train, epochs=35, batch_size=64,validation_data=(X_val, Y_val))
 
 loss3, acc3 = model.evaluate(X_train, Y_train, verbose=2)
 print('Restored model, train accuracy: {:5.2f}%'.format(100 * acc3))
@@ -125,6 +128,30 @@ print('Restored model, test accuracy: {:5.2f}%'.format(100 * acc1))
 loss2, acc2 = model.evaluate(X_val, Y_val, verbose=2)
 print('Restored model, val accuracy: {:5.2f}%'.format(100 * acc2))
 
+
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Models accuracy evolution')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper left')
+plt.grid(linestyle = '--', linewidth = 0.5)
+
+plt.show()
+plt.savefig("test1.png")
+plt.close()
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Models loss evolution')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Val'], loc='upper left')
+plt.grid(linestyle = '--', linewidth = 0.5)
+plt.show()
+plt.savefig("test2.png")
+plt.close()   
 
 '''
             "cwd":"${workspaceFolder}/fire-smoke-AL/",
