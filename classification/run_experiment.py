@@ -34,6 +34,7 @@ import pickle
 import sys
 from time import gmtime
 from time import strftime
+from urllib.parse import ParseResult
 
 import numpy as np
 from sklearn.preprocessing import normalize
@@ -57,12 +58,12 @@ flags.DEFINE_string("sampling_method", "margin",
                     ("Name of sampling method to use, can be any defined in "
                      "AL_MAPPING in sampling_methods.constants"))
 flags.DEFINE_float(
-    "warmstart_size", 1126,
+    "warmstart_size", 206,
     ("Can be float or integer.  Float indicates percentage of training data "
      "to use in the initial warmstart model")
 )
 flags.DEFINE_float(
-    "batch_size", 0.02,
+    "batch_size", 16,
     ("Can be float or integer.  Float indicates batch size as a percentage "
      "of training data size.")
 )
@@ -82,9 +83,9 @@ flags.DEFINE_string(
 flags.DEFINE_string("normalize_data", "False", "Whether to normalize the data.")
 flags.DEFINE_string("standardize_data", "False",
                     "Whether to standardize the data.")
-flags.DEFINE_string("save_dir", "../../files/results",
+flags.DEFINE_string("save_dir", "../../../ciafa/mnt_point_3/trmarto/files/results",
                     "Where to save outputs")
-flags.DEFINE_string("data_dir", "../../files/data/",
+flags.DEFINE_string("data_dir", "../../../ciafa/mnt_point_3/trmarto/files/data/",
                     "Directory with predownloaded and saved datasets.")
 flags.DEFINE_string("max_dataset_size", "15000",
                     ("maximum number of datapoints to include in data "
@@ -236,7 +237,7 @@ def generate_one_curve(X_train,
   rec_test = []
   rec_val = []
 
-  initial_training = True
+  final_iterarion = False
   selected_inds = list(range(seed_batch))
 
   # If select model is None, use score_model
@@ -250,13 +251,18 @@ def generate_one_curve(X_train,
   for b in range(n_batches):
     n_train = seed_batch + min(train_size - seed_batch, b * batch_size)
     print("Training model on " + str(n_train) + " datapoints")
-
+    if n_train>=422:
+      final_iterarion=True
     assert n_train == len(selected_inds)
     data_sizes.append(n_train)
 
     # Sort active_ind so that the end results matches that of uniform sampling
-    partial_X = X_train[sorted(selected_inds)]
-    partial_y = y_train[sorted(selected_inds)]
+    if b==0:
+      partial_X = X_train[:len(selected_inds)]
+      partial_y = y_train[:len(selected_inds)]
+    else:
+      partial_X = X_train[sorted(selected_inds)]
+      partial_y = y_train[sorted(selected_inds)]
     score_model.fit(partial_X, partial_y, X_val, y_val)
     if not same_score_select:
       select_model.fit(partial_X, partial_y, X_val, y_val)
@@ -294,14 +300,19 @@ def generate_one_curve(X_train,
     print('Requested: %d, Selected: %d' % (n_sample, len(new_batch)))
     assert len(new_batch) == n_sample
     assert len(list(set(selected_inds))) == len(selected_inds)
+    '''
     if initial_training == True:
-      score_model.save(str(FLAGS.warmstart_size) + "_INITIAL",True)
+      score_model.save(str(FLAGS.batch_size) + "_INITIAL",True)
       initial_training = False
-
+    '''
+    if final_iterarion==True:
+      break
+  
+  score_model.save(str(FLAGS.warmstart_size) + "COMPARISON_FINAL",True)
   # Check that the returned indice are correct and will allow mapping to
   # training set from original data
   #assert all(y_noise[indices[selected_inds]] == y_train[selected_inds])
-  
+  '''
   plt.plot(np.array(data_sizes)/train_size * 100, np.array(acc_train)*100, label='Train')
   plt.plot(np.array(data_sizes)/train_size * 100, np.array(acc_test)*100, label='Test')
   plt.title('Models accuracy evolution')
@@ -325,7 +336,9 @@ def generate_one_curve(X_train,
   plt.show()
   plt.savefig("../../files/results/fire_margin/images/LOSS_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".png")
   plt.close()
-  
+  '''
+
+
   results_save["data_sizes"] = data_sizes
   results_save["acc_train"] = acc_train
   results_save["acc_test"] = acc_test
@@ -341,7 +354,7 @@ def generate_one_curve(X_train,
   results_save["rec_val"] = rec_val
 
 
-  with open("../../files/results/fire_margin/data/DATA_" + FLAGS.dataset +  "_" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt", 'w') as file:
+  with open("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/data/DATA_" + FLAGS.dataset +  "AL_" + str(FLAGS.warmstart_size) + "_COMPARISON" + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt", 'w') as file:
      file.write(json.dumps(results_save))
 
 
@@ -350,7 +363,7 @@ def generate_one_curve(X_train,
   results["data_sizes"] = data_sizes
   results["indices"] = None #indices
   results["noisy_targets"] = None #y_noise
-  score_model.save(str(FLAGS.warmstart_size), False)
+  score_model.save(str(FLAGS.batch_size), False)
   return results, sampler
 
 
@@ -378,7 +391,7 @@ def main(argv):
                'directory most likely already created.'))
     # Set up logging
     filename = os.path.join(
-        save_dir, FLAGS.dataset +  "_warmstart-" + str(FLAGS.warmstart_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt")
+        save_dir, FLAGS.dataset +  "_batch_size-" + str(FLAGS.batch_size) + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt")
     sys.stdout = utils.Logger(filename)
 
   confusions = [float(t) for t in FLAGS.confusions.split(" ")]

@@ -90,7 +90,13 @@ def get_mldata(data_dir, name):
     
     target_size_1 = (256, 256)
     target_size_2 = (1,256,256,3)
+    
 
+    #df_train = pd.read_csv(data_dir + "fire/train/_train_AL_fire.csv", header=0, names=col_names)
+    #df_train = pd.read_csv(data_dir + "fire/train/_train_AL_smoke.csv", header=0, names=col_names)
+    #os.system("ls")
+    #os.system("ls " + data_dir)
+    #os.system("ls " + data_dir + "fire/train")
     df_train = pd.read_csv(data_dir + "fire/train/_train.csv", header=0, names=col_names)
     df_test = pd.read_csv(data_dir + "fire/test/_test.csv", header=0, names=col_names)
     df_val = pd.read_csv(data_dir + "fire/val/a_val.csv", header=0, names=col_names)

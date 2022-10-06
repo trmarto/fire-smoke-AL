@@ -192,8 +192,8 @@ class VGG16_CNN(object):
       setattr(self, parameter, value)
     return self
 
-  def save(self, warmstart_size, mode):
-
+  def save(self, batch_size_AL, mode):
+    
     if mode == True:
       #print(self.history.history.keys())
 
@@ -202,11 +202,11 @@ class VGG16_CNN(object):
       plt.title('Models accuracy evolution')
       plt.ylabel('Accuracy')
       plt.xlabel('Epoch')
-      plt.legend(['Train', 'Val'], loc='upper left')
+      plt.legend(['Train', 'Val'], loc='lower right')
       plt.grid(linestyle = '--', linewidth = 0.5)
 
       plt.show()
-      plt.savefig("../../files/results/fire_margin/images/ACC_INIT_smoke_" + warmstart_size + ".png")
+      plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/ACC_smoke_" + batch_size_AL + ".png")
       plt.close()
       # summarize history for loss
       plt.plot(self.history.history['loss'])
@@ -214,9 +214,10 @@ class VGG16_CNN(object):
       plt.title('Models loss evolution')
       plt.ylabel('Loss')
       plt.xlabel('Epoch')
-      plt.legend(['Train', 'Val'], loc='upper left')
+      plt.legend(['Train', 'Val'], loc='upper right')
       plt.grid(linestyle = '--', linewidth = 0.5)
       plt.show()
-      plt.savefig("../../files/results/fire_margin/images/LOSS_INIT_smoke_" + warmstart_size + ".png")
+      plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/LOSS_smoke_" + batch_size_AL + ".png")
       plt.close()
-    self.model.save('../../files/models/smoke_model_AL_' + warmstart_size + '.h5')
+    
+    self.model.save('../../../ciafa/mnt_point_3/trmarto/files/models/smoke_model_AL_' + batch_size_AL + '.h5')

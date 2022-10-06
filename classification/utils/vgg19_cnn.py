@@ -193,7 +193,8 @@ class VGG19_CNN(object):
       setattr(self, parameter, value)
     return self
 
-  def save(self, warmstart_size, mode):
+  def save(self, batch_size_AL, mode):
+    
     if mode == True:
       #print(self.history.history.keys())
 
@@ -206,7 +207,7 @@ class VGG19_CNN(object):
       plt.grid(linestyle = '--', linewidth = 0.5)
 
       plt.show()
-      plt.savefig("../../files/results/fire_margin/images/ACC_INIT_fire_" + warmstart_size + ".png")
+      plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/ACC_fire_" + batch_size_AL + ".png")
       plt.close()
       # summarize history for loss
       plt.plot(self.history.history['loss'])
@@ -217,6 +218,7 @@ class VGG19_CNN(object):
       plt.legend(['Train', 'Val'], loc='upper left')
       plt.grid(linestyle = '--', linewidth = 0.5)
       plt.show()
-      plt.savefig("../../files/results/fire_margin/images/LOSS_INIT_fire_" + warmstart_size + ".png")
+      plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/LOSS_fire_" + batch_size_AL + ".png")
       plt.close()   
-    self.model.save('../../files/models/fire_model_AL_' + warmstart_size + '.h5')
+    
+    self.model.save('../../../ciafa/mnt_point_3/trmarto/files/models/fire_model_AL_batch' + batch_size_AL + '.h5')
