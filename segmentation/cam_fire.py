@@ -32,13 +32,15 @@ def get_output_layer(model, layer_name):
 def crf_dense(maskd,image_rgb,r,xy):
     n_classes = 2
     colors, labels = np.unique(maskd.flatten(), return_inverse=True)
-    unary = unary_from_labels(labels, 2, 0.7,zero_unsure = False)
-    unary = np.ascontiguousarray(unary)
 
     d = dcrf.DenseCRF2D(image_rgb.shape[1], image_rgb.shape[0], n_classes)
     
+    unary = unary_from_labels(labels, 2, 0.8,zero_unsure = False)
+    unary = np.ascontiguousarray(unary)
+
+    
     d.setUnaryEnergy(unary)
-    d.addPairwiseGaussian(sxy=(20), compat=3, kernel=dcrf.DIAG_KERNEL,
+    d.addPairwiseGaussian(sxy=(20), compat=5, kernel=dcrf.DIAG_KERNEL,
                             normalization=dcrf.NORMALIZE_SYMMETRIC)
 
     d.addPairwiseBilateral(sxy=(xy), srgb=(r), rgbim=image_rgb,
@@ -54,12 +56,11 @@ def crf_dense(maskd,image_rgb,r,xy):
     return crf_mask
 
     
-def get_output(folder_path, model_name, path_test, mode):
+def get_output(folder_path, model_name, path_test):
 
     images_np = sorted_alphanumeric(os.listdir(path_test)) 
     K.clear_session()
-    model = models.load_model(folder_path + model_name)
-    # model.summary()
+    model = models.load_model(folder_path + "experiment_E/" + model_name)
 
     out_class = 0
     out_mask_list = []
@@ -73,15 +74,12 @@ def get_output(folder_path, model_name, path_test, mode):
         original_img = cv2.imread(img_path)
         width, height, _ = original_img.shape
 
-
+        
         img_o = tf.keras.preprocessing.image.load_img(img_path, target_size =(256,256))
         img_o = np.array(img_o)
         input_img = img_o.reshape((1,256,256,3))
+        
         '''
-        
-
-        
-
         img_o = preprocessing.image.load_img(img_path, target_size=(256, 256))
         img_o = preprocessing.image.img_to_array(img_o)
         img_o = np.expand_dims(img_o, axis=0)
@@ -94,14 +92,12 @@ def get_output(folder_path, model_name, path_test, mode):
         print(preds)
         # Return empty mask if no fire in image
 
-        if mode == 0:
-            if preds[0][0] < 0.5 :
-                out_mask_list.append(np.zeros((height, width), dtype=float))
-                continue
-        elif mode == 1:
-            if preds[0][0] > 0.5 :
-                out_mask_list.append(np.zeros((height, width), dtype=float))
-                continue
+        '''
+        if preds[0][0] > 0.5 :
+            out_mask_list.append(np.zeros((height, width), dtype=float))
+            continue
+        '''
+        
         
         #- - - - - - - - - CAM - - - - - - - - -#
 
@@ -127,12 +123,12 @@ def get_output(folder_path, model_name, path_test, mode):
         # Heatmap image
         heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
         heatmap[np.where(cam < 0.1)] = 0
-        output_heatmap = folder_path + "../results/" + "compare/cam_w0/img/"+img_name
+        #output_heatmap = folder_path + "../results/" + "compare/cam_w0/img/"+img_name
         #cv2.imwrite(folder_path+"compare/cam_w0/img/"+img_name+'_mask.png',heatmap)
 
         # Original image with heatmap overlayed
         img_heat = heatmap*0.8 + original_img
-        output_img_heat = folder_path + "../results/" + "experiment_B/wo_wo/cam_0.5/"+img_name+'_out.png'
+        #output_img_heat = folder_path + "../results/" + "experiment_B/wo_wo/cam_0.5/"+img_name+'_out.png'
         #cv2.imwrite(output_img_heat, img_heat)
 
         # Convert heatmap into binary mask        
@@ -143,31 +139,34 @@ def get_output(folder_path, model_name, path_test, mode):
         heatmap_seg = np.uint8(cam)
         heatmap_seg[np.where(cam < tresh)] = 0
         heatmap_seg[np.where(cam >= tresh)] = 1
-        output_seg2 = folder_path + "../results/" + "experiment_B/wo_wo/mask_0.5_2/"+img_name+'_cam_mask.png'
+        #output_seg2 = folder_path + "../results/" + "experiment_B/wo_wo/mask_0.5_2/"+img_name+'_cam_mask.png'
         #cv2.imwrite(output_seg2, 255*heatmap_seg)
 
         # Original image with binary mask overlayed
         heatmap_img_seg = cv2.cvtColor(heatmap_seg ,cv2.COLOR_GRAY2RGB)
         img_mask = original_img + heatmap_img_seg*0.3*255
-        output_segimg2 = folder_path + "../results/" + "experiment_B/wo_wo/maskOnImage/"+img_name+'_seg_img_.png'
-        cv2.imwrite(output_segimg2, img_mask)
+        #output_segimg2 = folder_path + "../results/" + "experiment_B/wo_wo/maskOnImage/"+img_name+'_seg_img_.png'
+        #cv2.imwrite(output_segimg2, img_mask)
 
         #- - - - - - - - - CRF - - - - - - - - -#
 
-        output_crf = folder_path+ "../results/crf/"+img_name+'_crf_img_.png'
+        output_crf = path_test + "../fire_al/" +img_name[:4] + 'al.png'
+        #cv2.imwrite(output_crf, 255*heatmap_seg)
 
 
+        
         image_rgb = cv2.resize(original_img,(500,500))
-        image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB)
+        
+        image_rgb = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         
         cam_mask = cv2.resize(heatmap_seg,(500,500))
-        mask_inv = cv2.bitwise_not(cam_mask)
-        maskd = np.expand_dims(cam_mask, axis=2)
+        mask_inv = cv2.bitwise_not(heatmap_seg)
+        maskd = np.expand_dims(heatmap_seg, axis=2)
         mask_inv = np.expand_dims(mask_inv, axis=2)
         
         # CRF parameters
-        r = 250
-        xy = 10
+        r = 10
+        xy = 250
 
         crf_mask = crf_dense(maskd,image_rgb,r,xy)
         crf_mask = cv2.resize(crf_mask, (height, width))
@@ -178,22 +177,17 @@ def get_output(folder_path, model_name, path_test, mode):
     return out_mask_list
 
 
-def main(argv):
-    folder_path = "../../files/models/"
-    path_test = "../../files/data/segmentation_test/"
-
-    if(argv[0] == 'orig'):
-        model_name = "fire_model.h5"
-        mode = 0
-    elif(argv[0] == 'AL'):
-        model_name = "fire_model_AL_0.01.h5"
-        mode = 1
-    else:
-        raise Exception("No valid mode. Use orig or AL as arguments.")
+def main():
+    folder_path = "../../../ciafa/mnt_point_3/trmarto/files/models/"
+    path_test = "../../../ciafa/mnt_point_3/trmarto/files/data/segmentation/fire_rgb/"
 
 
-    output_mask_list = get_output(folder_path, model_name, path_test, mode)
+    model_name = "fire_model_AL_915.0.h5"
+
+
+
+    output_mask_list = get_output(folder_path, model_name, path_test)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

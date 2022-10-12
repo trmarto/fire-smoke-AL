@@ -52,7 +52,8 @@ def get_output(folder_path, model_name, path_test):
 
     images_np = sorted_alphanumeric(os.listdir(path_test)) 
     K.clear_session()
-    model = models.load_model("models/"+model_name)
+    model = models.load_model(folder_path + "experiment_E/" + model_name)
+
     # model.summary()
 
     out_class = 1
@@ -73,10 +74,11 @@ def get_output(folder_path, model_name, path_test):
         # Image perdiction
         preds = model.predict(input_img)
         # Return empty mask if no smoke in image
-        if preds[0][out_class] < 0.7 :
+        '''
+        if preds[0][out_class] < 0.5 :
             out_mask_list.append(np.zeros((height, width), dtype=float))
             continue
-
+        '''
         #- - - - - - - - - CAM - - - - - - - - -#
 
         # Get the 512 input weights to the sigmoid.
@@ -100,12 +102,12 @@ def get_output(folder_path, model_name, path_test):
         # Heatmap image
         heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
         heatmap[np.where(cam < 0.1)] = 0
-        output_heatmap = folder_path+"compare/heatmap/"+img_name
+        #output_heatmap = folder_path+"compare/heatmap/"+img_name
         # cv2.imwrite(folder_path+"compare/cam_w0/img/"+img_name+'_mask.png',heatmap)
 
         # Original image with heatmap overlayed
         img_heat = heatmap*0.8 + original_img
-        output_img_heat = folder_path+"compare/heatmap_over/"+img_name+'_out.png'
+        #output_img_heat = folder_path+"compare/heatmap_over/"+img_name+'_out.png'
         # cv2.imwrite(output, img_heat)
 
         # Convert heatmap into binary mask        
@@ -116,41 +118,50 @@ def get_output(folder_path, model_name, path_test):
         heatmap_seg = np.uint8(cam)
         heatmap_seg[np.where(cam < tresh)] = 0
         heatmap_seg[np.where(cam >= tresh)] = 1
-        output_seg2 = folder_path+"compare/bin_mask/"+img_name+'_cam_mask.png'
+        #output_seg2 = folder_path+"compare/bin_mask/"+img_name+'_cam_mask.png'
         #cv2.imwrite(output_seg2, 255*heatmap_seg)
 
         # Original image with binary mask overlayed
         heatmap_img_seg = cv2.cvtColor(heatmap_seg ,cv2.COLOR_GRAY2RGB)
         img_mask = original_img + heatmap_img_seg*0.3*255
-        output_segimg2 = folder_path+"compare/img_w_mask/"+img_name+'_seg_img.png'
-        cv2.imwrite(output_segimg2, img_mask)
+        #output_segimg2 = folder_path+"compare/img_w_mask/"+img_name+'_seg_img.png'
+        #cv2.imwrite(output_segimg2, img_mask)
 
         #- - - - - - - - - CRF - - - - - - - - -#
 
-        image_rgb = cv2.resize(original_img,(500,500))
-        image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_BGR2RGB)
+        output_crf = path_test + "../smoke_al/" +img_name[:-4] + '_al.jpg'
+
+
+
+        #image_rgb = cv2.resize(original_img,(500,500))
+        image_rgb = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         
-        cam_mask = cv2.resize(heatmap_seg,(500,500))
-        mask_inv = cv2.bitwise_not(cam_mask)
-        maskd = np.expand_dims(cam_mask, axis=2)
+        #cam_mask = cv2.resize(heatmap_seg,(500,500))
+        mask_inv = cv2.bitwise_not(heatmap_seg)
+        maskd = np.expand_dims(heatmap_seg, axis=2)
         mask_inv = np.expand_dims(mask_inv, axis=2)
         
         # CRF parameters
-        r = 100
-        xy = 5
+        r = 5
+        xy = 100
 
         crf_mask = crf_dense(maskd,image_rgb,r,xy)
-        crf_mask = cv2.resize(crf_mask, (height, width))
+        #crf_mask = cv2.resize(crf_mask, (height, width))
         out_mask_list.append(crf_mask)
+        
+        cv2.imwrite(output_crf, crf_mask)
+
 
     return out_mask_list
 
 
 def main():
-    folder_path = "models/"
-    path_test = "../data/fire_test/"
+    folder_path = "../../../ciafa/mnt_point_3/trmarto/files/models/"
+    path_test = "../../../ciafa/mnt_point_3/trmarto/files/data/segmentation/smoke_rgb/"
 
-    model_name = "smoke_model.h5"
+
+    model_name = "smoke_model_AL_0.01.h5"
+
 
     output_mask_list = get_output(folder_path, model_name, path_test)
 

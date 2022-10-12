@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
-from tabnanny import verbose
 
 import keras
 import keras.backend as K
@@ -51,12 +50,14 @@ class VGG16_CNN(object):
 
   def __init__(self,
                random_state=1,
-               epochs=35,
+               epochs=50,
                batch_size=32,
                solver='adam',
                learning_rate=0.000001,
                lr_decay=0.):
     # params
+    self.i=0
+    
     self.solver = solver
     self.epochs = epochs
     self.batch_size = batch_size
@@ -144,6 +145,31 @@ class VGG16_CNN(object):
         shuffle=True,
         sample_weight=sample_weight,
         verbose=0)
+    
+    plt.plot(self.history.history['accuracy'])
+    plt.plot(self.history.history['val_accuracy'])
+    plt.title('Models accuracy evolution')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='lower right')
+    plt.grid(linestyle = '--', linewidth = 0.5)
+
+    plt.show()
+    plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/acc_test_" + str(self.i) + "_.png")
+    plt.close()
+    # summarize history for loss
+    plt.plot(self.history.history['loss'])
+    plt.plot(self.history.history['val_loss'])
+    plt.title('Models loss evolution')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Val'], loc='upper right')
+    plt.grid(linestyle = '--', linewidth = 0.5)
+    plt.show()
+    plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/loss_" + str(self.i) + "_test.png")
+    plt.close()
+
+    self.i = self.i + 1
 
   def predict(self, X_val):
     predicted = self.model.predict(X_val)

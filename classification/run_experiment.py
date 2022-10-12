@@ -58,7 +58,7 @@ flags.DEFINE_string("sampling_method", "margin",
                     ("Name of sampling method to use, can be any defined in "
                      "AL_MAPPING in sampling_methods.constants"))
 flags.DEFINE_float(
-    "warmstart_size", 206,
+    "warmstart_size", 326,
     ("Can be float or integer.  Float indicates percentage of training data "
      "to use in the initial warmstart model")
 )
@@ -363,7 +363,7 @@ def generate_one_curve(X_train,
   results["data_sizes"] = data_sizes
   results["indices"] = None #indices
   results["noisy_targets"] = None #y_noise
-  score_model.save(str(FLAGS.batch_size), False)
+  #score_model.save(str(FLAGS.batch_size), False)
   return results, sampler
 
 
