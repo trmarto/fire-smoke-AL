@@ -193,11 +193,11 @@ class VGG19_CNN(object):
       setattr(self, parameter, value)
     return self
 
-  def save(self, batch_size_AL, mode):
+  def save(self, warmstart_size_AL, mode):
     
     if mode == True:
       #print(self.history.history.keys())
-
+      '''
       plt.plot(self.history.history['accuracy'])
       plt.plot(self.history.history['val_accuracy'])
       plt.title('Models accuracy evolution')
@@ -220,5 +220,5 @@ class VGG19_CNN(object):
       plt.show()
       plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/LOSS_fire_" + batch_size_AL + ".png")
       plt.close()   
-    
-    self.model.save('../../../ciafa/mnt_point_3/trmarto/files/models/fire_model_AL_batch' + batch_size_AL + '.h5')
+      '''
+    self.model.save('../../../ciafa/mnt_point_3/trmarto/files/models/fire_model_AL_mIoU_' + warmstart_size_AL + '.h5')

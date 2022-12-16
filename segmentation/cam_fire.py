@@ -56,11 +56,11 @@ def crf_dense(maskd,image_rgb,r,xy):
     return crf_mask
 
     
-def get_output(folder_path, model_name, path_test):
+def get_output(folder_path, model_name, path_test, experiment):
 
     images_np = sorted_alphanumeric(os.listdir(path_test)) 
     K.clear_session()
-    model = models.load_model(folder_path + "experiment_E/" + model_name)
+    model = models.load_model(folder_path + "experiment_" + experiment + "/" + model_name)
 
     out_class = 0
     out_mask_list = []
@@ -70,6 +70,9 @@ def get_output(folder_path, model_name, path_test):
         img_path = path_test+img
         img_name = img
         #print("\nImg processing: " , img_name)
+
+        output_crf = path_test[:-9] + model_name[:-3] + "/" +img_name[:4] + 'al.png'
+
 
         original_img = cv2.imread(img_path)
         width, height, _ = original_img.shape
@@ -92,11 +95,13 @@ def get_output(folder_path, model_name, path_test):
         print(preds)
         # Return empty mask if no fire in image
 
-        '''
+                
         if preds[0][0] > 0.5 :
             out_mask_list.append(np.zeros((height, width), dtype=float))
+            cv2.imwrite(output_crf, np.zeros((width, height), dtype=float))
+
             continue
-        '''
+        
         
         
         #- - - - - - - - - CAM - - - - - - - - -#
@@ -149,8 +154,6 @@ def get_output(folder_path, model_name, path_test):
         #cv2.imwrite(output_segimg2, img_mask)
 
         #- - - - - - - - - CRF - - - - - - - - -#
-
-        output_crf = path_test + "../fire_al/" +img_name[:4] + 'al.png'
         #cv2.imwrite(output_crf, 255*heatmap_seg)
 
 
@@ -177,17 +180,19 @@ def get_output(folder_path, model_name, path_test):
     return out_mask_list
 
 
-def main():
+def main(argv):
     folder_path = "../../../ciafa/mnt_point_3/trmarto/files/models/"
     path_test = "../../../ciafa/mnt_point_3/trmarto/files/data/segmentation/fire_rgb/"
 
 
-    model_name = "fire_model_AL_915.0.h5"
+    model_name = argv[1]
+    experiment = argv[0]
+
+    os.system("mkdir " + path_test[:-9] + model_name[:-3] + "/")
 
 
-
-    output_mask_list = get_output(folder_path, model_name, path_test)
+    output_mask_list = get_output(folder_path, model_name, path_test, experiment)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

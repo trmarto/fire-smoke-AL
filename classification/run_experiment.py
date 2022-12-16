@@ -58,12 +58,12 @@ flags.DEFINE_string("sampling_method", "margin",
                     ("Name of sampling method to use, can be any defined in "
                      "AL_MAPPING in sampling_methods.constants"))
 flags.DEFINE_float(
-    "warmstart_size", 326,
+    "warmstart_size", 1408,
     ("Can be float or integer.  Float indicates percentage of training data "
      "to use in the initial warmstart model")
 )
 flags.DEFINE_float(
-    "batch_size", 16,
+    "batch_size", 32,
     ("Can be float or integer.  Float indicates batch size as a percentage "
      "of training data size.")
 )
@@ -237,7 +237,6 @@ def generate_one_curve(X_train,
   rec_test = []
   rec_val = []
 
-  final_iterarion = False
   selected_inds = list(range(seed_batch))
 
   # If select model is None, use score_model
@@ -251,8 +250,6 @@ def generate_one_curve(X_train,
   for b in range(n_batches):
     n_train = seed_batch + min(train_size - seed_batch, b * batch_size)
     print("Training model on " + str(n_train) + " datapoints")
-    if n_train>=422:
-      final_iterarion=True
     assert n_train == len(selected_inds)
     data_sizes.append(n_train)
 
@@ -305,10 +302,10 @@ def generate_one_curve(X_train,
       score_model.save(str(FLAGS.batch_size) + "_INITIAL",True)
       initial_training = False
     '''
-    if final_iterarion==True:
-      break
+    score_model.save(str(FLAGS.batch_size) + "BATCH_SIZE_CURRENT_" + str(n_train) , False)
+
   
-  score_model.save(str(FLAGS.warmstart_size) + "COMPARISON_FINAL",True)
+  score_model.save(str(FLAGS.batch_size) + "BATCH_SIZE_CURRENT_" + str(n_train),False)
   # Check that the returned indice are correct and will allow mapping to
   # training set from original data
   #assert all(y_noise[indices[selected_inds]] == y_train[selected_inds])
@@ -354,7 +351,7 @@ def generate_one_curve(X_train,
   results_save["rec_val"] = rec_val
 
 
-  with open("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/data/DATA_" + FLAGS.dataset +  "AL_" + str(FLAGS.warmstart_size) + "_COMPARISON" + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt", 'w') as file:
+  with open("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/data/DATA_" + FLAGS.dataset +  "AL_" + str(FLAGS.batch_size) + "_BATCH_SIZE" + "_mIoU" + "_time-" + strftime("%Y-%m-%d-%H-%M-%S", gmtime()) + ".txt", 'w') as file:
      file.write(json.dumps(results_save))
 
 

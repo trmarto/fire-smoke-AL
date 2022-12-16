@@ -9,6 +9,7 @@ import pydensecrf.densecrf as dcrf
 from keras import *
 from keras import backend as K
 from pydensecrf.utils import  unary_from_labels
+import sys
 
 
 def sorted_alphanumeric(data):
@@ -48,11 +49,11 @@ def crf_dense(maskd,image_rgb,r,xy):
     return crf_mask
 
     
-def get_output(folder_path, model_name, path_test):
+def get_output(folder_path, model_name, path_test, experiment):
 
     images_np = sorted_alphanumeric(os.listdir(path_test)) 
     K.clear_session()
-    model = models.load_model(folder_path + "experiment_E/" + model_name)
+    model = models.load_model(folder_path + "experiment_" + experiment + "/" + model_name)
 
     # model.summary()
 
@@ -63,6 +64,10 @@ def get_output(folder_path, model_name, path_test):
         img_path = path_test+img
         img_name = img
         print("\nImg processing: " , img_name)
+        
+        output_crf = path_test[:-10] + model_name[:-3] + "/" +img_name[:-4] + '_al.jpg'
+
+        
         original_img = cv2.imread(img_path)
         width, height, _ = original_img.shape
 
@@ -73,12 +78,19 @@ def get_output(folder_path, model_name, path_test):
 
         # Image perdiction
         preds = model.predict(input_img)
+        print(preds)
         # Return empty mask if no smoke in image
-        '''
+        
+        
+        
+        
         if preds[0][out_class] < 0.5 :
             out_mask_list.append(np.zeros((height, width), dtype=float))
+            cv2.imwrite(output_crf, np.zeros((width, height), dtype=float))
             continue
-        '''
+        
+        
+        
         #- - - - - - - - - CAM - - - - - - - - -#
 
         # Get the 512 input weights to the sigmoid.
@@ -129,14 +141,13 @@ def get_output(folder_path, model_name, path_test):
 
         #- - - - - - - - - CRF - - - - - - - - -#
 
-        output_crf = path_test + "../smoke_al/" +img_name[:-4] + '_al.jpg'
 
 
 
-        #image_rgb = cv2.resize(original_img,(500,500))
+        image_rgb = cv2.resize(original_img,(500,500))
         image_rgb = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         
-        #cam_mask = cv2.resize(heatmap_seg,(500,500))
+        cam_mask = cv2.resize(heatmap_seg,(500,500))
         mask_inv = cv2.bitwise_not(heatmap_seg)
         maskd = np.expand_dims(heatmap_seg, axis=2)
         mask_inv = np.expand_dims(mask_inv, axis=2)
@@ -146,7 +157,7 @@ def get_output(folder_path, model_name, path_test):
         xy = 100
 
         crf_mask = crf_dense(maskd,image_rgb,r,xy)
-        #crf_mask = cv2.resize(crf_mask, (height, width))
+        crf_mask = cv2.resize(crf_mask, (height, width))
         out_mask_list.append(crf_mask)
         
         cv2.imwrite(output_crf, crf_mask)
@@ -155,16 +166,17 @@ def get_output(folder_path, model_name, path_test):
     return out_mask_list
 
 
-def main():
+def main(argv):
     folder_path = "../../../ciafa/mnt_point_3/trmarto/files/models/"
     path_test = "../../../ciafa/mnt_point_3/trmarto/files/data/segmentation/smoke_rgb/"
 
 
-    model_name = "smoke_model_AL_0.01.h5"
+    model_name = argv[1]
+    os.system("mkdir " + path_test[:-10] + model_name[:-3] + "/")
+    experiment = argv[0]
 
-
-    output_mask_list = get_output(folder_path, model_name, path_test)
+    output_mask_list = get_output(folder_path, model_name, path_test, experiment)
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

@@ -50,8 +50,8 @@ class VGG16_CNN(object):
 
   def __init__(self,
                random_state=1,
-               epochs=50,
-               batch_size=32,
+               epochs=35,
+               batch_size=35,
                solver='adam',
                learning_rate=0.000001,
                lr_decay=0.):
@@ -146,6 +146,7 @@ class VGG16_CNN(object):
         sample_weight=sample_weight,
         verbose=0)
     
+    '''
     plt.plot(self.history.history['accuracy'])
     plt.plot(self.history.history['val_accuracy'])
     plt.title('Models accuracy evolution')
@@ -170,7 +171,7 @@ class VGG16_CNN(object):
     plt.close()
 
     self.i = self.i + 1
-
+    '''
   def predict(self, X_val):
     predicted = self.model.predict(X_val)
     return predicted
@@ -219,7 +220,7 @@ class VGG16_CNN(object):
     return self
 
   def save(self, batch_size_AL, mode):
-    
+    '''
     if mode == True:
       #print(self.history.history.keys())
 
@@ -245,5 +246,5 @@ class VGG16_CNN(object):
       plt.show()
       plt.savefig("../../../ciafa/mnt_point_3/trmarto/files/results/fire_margin/images/LOSS_smoke_" + batch_size_AL + ".png")
       plt.close()
-    
-    self.model.save('../../../ciafa/mnt_point_3/trmarto/files/models/smoke_model_AL_' + batch_size_AL + '.h5')
+    '''    
+    self.model.save('../../../ciafa/mnt_point_3/trmarto/files/models/smoke_model_AL_mIoU_' + batch_size_AL + '.h5')

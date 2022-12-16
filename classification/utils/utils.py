@@ -97,9 +97,9 @@ def get_mldata(data_dir, name):
     #os.system("ls")
     #os.system("ls " + data_dir)
     #os.system("ls " + data_dir + "fire/train")
-    df_train = pd.read_csv(data_dir + "fire/train/_train.csv", header=0, names=col_names)
-    df_test = pd.read_csv(data_dir + "fire/test/_test.csv", header=0, names=col_names)
-    df_val = pd.read_csv(data_dir + "fire/val/a_val.csv", header=0, names=col_names)
+    df_train = pd.read_csv(data_dir + "classification/train/_train.csv", header=0, names=col_names)
+    df_test = pd.read_csv(data_dir + "classification/test/_test.csv", header=0, names=col_names)
+    df_val = pd.read_csv(data_dir + "classification/val/a_val.csv", header=0, names=col_names)
 
     # Train
     x_train_temp = df_train["Image"]
@@ -112,7 +112,7 @@ def get_mldata(data_dir, name):
 
 
     for file_name in x_train_temp:
-        img = tf.keras.preprocessing.image.load_img(data_dir + "fire/train/" + file_name, target_size =target_size_1)
+        img = tf.keras.preprocessing.image.load_img(data_dir + "classification/train/" + file_name, target_size =target_size_1)
         img = np.array(img)
         unit_ = img.reshape(target_size_2)
         x_train_aux.append(unit_)
@@ -137,7 +137,7 @@ def get_mldata(data_dir, name):
     
     
     for file_name in x_test_temp:
-        img = tf.keras.preprocessing.image.load_img(data_dir + "fire/test/" + file_name, target_size =target_size_1)
+        img = tf.keras.preprocessing.image.load_img(data_dir + "classification/test/" + file_name, target_size =target_size_1)
         img = np.array(img)
         unit_ = img.reshape(target_size_2)
         x_test_aux.append(unit_)
@@ -164,7 +164,7 @@ def get_mldata(data_dir, name):
     
     
     for file_name in x_val_temp:
-        img = tf.keras.preprocessing.image.load_img(data_dir + "fire/val/" + file_name, target_size =target_size_1)
+        img = tf.keras.preprocessing.image.load_img(data_dir + "classification/val/" + file_name, target_size =target_size_1)
         img = np.array(img)
         unit_ = img.reshape(target_size_2)
         x_val_aux.append(unit_)
