@@ -1,4 +1,4 @@
-**Note: Classification and Segmentation phases have different software requirements. Thus, it is reccomended for the user to create two different virtual environments (ex: Anaconda). Requirements list are available inside the respective folders.**
+**NOTE: Classification and Segmentation phases have different software requirements. Thus, it is reccomended for the user to create two different virtual environments (ex: Anaconda). Requirements list are available inside the respective folders.**
 
 
 -----------------------------------------------------
